@@ -3,14 +3,15 @@
 import { getClipWidth, GAP_BETWEEN_CLIPS, getConstrainedHeight } from "@/data/constants";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePinchZoom } from "@/hooks/use-pinch-zoom";
+import DraggableText from "./draggable-text";
 import StaticTextOverlay from "./static-text-overlay";
 import { SAMPLE_VIDEOS } from "@/data/sample-videos";
 import VideoClipCard from "./video-clip-card";
 import { twMerge } from "tailwind-merge";
-import { Button } from "./ui/button";
 import Magnifier from "./magnifier";
 import { Plus } from "lucide-react";
 import TextDock from "./text-dock";
+import { snapToClipBoundaries, snapTextEdges, Clip } from "@/lib/timeline-utils";
 
 export default function tchVideoEditor() {
   const ratio: "portrait" | "landscape" = "portrait";
@@ -23,13 +24,21 @@ export default function tchVideoEditor() {
   const [selectedTextAnimation, setSelectedTextAnimation] = useState<string | null>(null);
   const [isTextOpen, setIsTextOpen] = useState(false);
   const [isTextActive, setIsTextActive] = useState(false);
-  const [textStartPosition, setTextStartPosition] = useState(1);
-  const [textClipCount, setTextClipCount] = useState(2);
+  const [textStartPosition, setTextStartPosition] = useState(0); // start at clip 1 (position 0)
+  const [textClipCount, setTextClipCount] = useState(1); // default: 1 clip
+  const [textId] = useState(() => `text-overlay-${Date.now()}`);
 
-  const [activeClips, setActiveClips] = useState(SAMPLE_VIDEOS);
+  const [activeClips, setActiveClips] = useState(SAMPLE_VIDEOS.map((video, index) => ({
+    ...video,
+    startPosition: index,
+    duration: 1, // each clip is 1 unit
+  })));
   const [removedClips, setRemovedClips] = useState<typeof SAMPLE_VIDEOS>([]);
 
-  const handleZoomChange = useCallback((newZoom: number) => setZoomLevel(newZoom), []);
+  const handleZoomChange = useCallback((newZoom: number) => {
+    setZoomLevel(newZoom);
+  }, []);
+  
   const { setZoom: setPinchZoom } = usePinchZoom({
     minZoom: 0.33,
     maxZoom: 2.22,
@@ -50,6 +59,10 @@ export default function tchVideoEditor() {
       setAppliedText(textInput);
       setIsTextActive(true);
       setIsTextOpen(false);
+      
+      // default text to start at position 0 (first clip)
+      setTextStartPosition(0);
+      setTextClipCount(Math.min(2, activeClips.length)); // default to 2 clips or less
     }
   };
 
@@ -58,17 +71,72 @@ export default function tchVideoEditor() {
     setAppliedText("");
     setSelectedTextAnimation(null);
     setIsTextActive(false);
-    setTextStartPosition(1);
-    setTextClipCount(2);
+    setTextStartPosition(0);
+    setTextClipCount(1);
   };
 
   const handleTextClick = () => setIsTextOpen(true);
 
+  // convert active clips to clip interface for snapping
+  const getClipsAsClipArray = (): Clip[] => {
+    return activeClips.map((clip, index) => ({
+      id: clip.id,
+      startPosition: index,
+      duration: 1,
+    }));
+  };
+
+  // handle text position & duration changes with snapping
+  const handleTextChange = (id: string, newPosition: number, newDuration?: number) => {
+    const clips = getClipsAsClipArray();
+    
+    // if duration changed, snap both edges
+    if (newDuration !== undefined) {
+      const { snappedStart, snappedDuration } = snapTextEdges(
+        newPosition,
+        newDuration,
+        clips,
+        0.3
+      );
+      
+      // apply constraints
+      const maxStart = Math.max(0, activeClips.length - snappedDuration);
+      const clampedStart = Math.max(0, Math.min(snappedStart, maxStart));
+      
+      setTextStartPosition(clampedStart);
+      setTextClipCount(snappedDuration);
+      
+    } else {
+      // only position changed, snap just the start
+      const snappedPosition = snapToClipBoundaries(newPosition, clips, 0.3);
+      
+      // ensure text doesnt go beyond timeline
+      const maxPosition = Math.max(0, activeClips.length - textClipCount);
+      const clampedPosition = Math.max(0, Math.min(snappedPosition, maxPosition));
+      
+      setTextStartPosition(clampedPosition);
+    }
+  };
+
   const handleRemoveClip = (id: string) => {
-    const clip = activeClips.find((c) => c.id === id);
-    if (clip) {
-      setActiveClips(activeClips.filter((c) => c.id !== id));
+    const clipIndex = activeClips.findIndex((c) => c.id === id);
+    if (clipIndex >= 0) {
+      const clip = activeClips[clipIndex];
+      const newActiveClips = activeClips.filter((c) => c.id !== id);
+      setActiveClips(newActiveClips);
       setRemovedClips([...removedClips, clip]);
+      
+      // adjust text position if needed
+      if (textStartPosition >= newActiveClips.length - textClipCount) {
+        const newMax = Math.max(0, newActiveClips.length - textClipCount);
+        setTextStartPosition(Math.min(textStartPosition, newMax));
+      }
+      
+      // if text spans the removed clip, adjust duration
+      if (clipIndex >= textStartPosition && clipIndex < textStartPosition + textClipCount) {
+        const newDuration = Math.max(1, textClipCount - 1);
+        setTextClipCount(newDuration);
+      }
     }
   };
 
@@ -76,7 +144,8 @@ export default function tchVideoEditor() {
     const clip = removedClips.find((c) => c.id === id);
     if (clip) {
       setRemovedClips(removedClips.filter((c) => c.id !== id));
-      setActiveClips([...activeClips, clip]);
+      const newActiveClips = [...activeClips, { ...clip, startPosition: activeClips.length, duration: 1 }];
+      setActiveClips(newActiveClips);
     }
   };
 
@@ -94,7 +163,13 @@ export default function tchVideoEditor() {
             </div>
           </div>
           <div className="hidden md:flex">
-            <Magnifier onZoomChange={handleZoomChange} initialZoom={zoomLevel} ratio={ratio} isLoading={false} externalZoom={zoomLevel} />
+            <Magnifier 
+              onZoomChange={handleZoomChange} 
+              initialZoom={zoomLevel} 
+              ratio={ratio} 
+              isLoading={false} 
+              externalZoom={zoomLevel} 
+            />
           </div>
         </div>
       </div>
@@ -115,16 +190,35 @@ export default function tchVideoEditor() {
         ref={containerRef}
         className="scrollbar scrollbar-w-1.5 scrollbar-thumb-[#E9E9E9] scrollbar-thumb-rounded-full scrollbar-hover:scrollbar-thumb-black relative flex flex-1 flex-col justify-center overflow-hidden overflow-y-auto rounded-3xl border border-[#F6F6F6] bg-white md:flex"
       >
-        <StaticTextOverlay
-          textContent={appliedText}
-          startPosition={textStartPosition}
-          duration={textClipCount}
-          isActive={isTextActive}
-          totalClips={activeClips.length}
-          clipWidth={clipWidth}
-          gap={GAP_BETWEEN_CLIPS}
-          onClick={handleTextClick}
-        />
+        {/* show StaticTextOverlay when text is inactive */}
+        {!isTextActive ? (
+          <StaticTextOverlay
+            textContent={appliedText}
+            startPosition={textStartPosition}
+            duration={textClipCount}
+            isActive={isTextActive}
+            totalClips={activeClips.length}
+            clipWidth={clipWidth}
+            gap={GAP_BETWEEN_CLIPS}
+            onClick={handleTextClick}
+          />
+        ) : (
+          /* show DraggableText when text is active */
+          <DraggableText
+            id={textId}
+            textContent={appliedText}
+            startPosition={textStartPosition}
+            duration={textClipCount}
+            isActive={isTextActive}
+            clipWidth={clipWidth}
+            gap={GAP_BETWEEN_CLIPS}
+            totalClips={activeClips.length}
+            zoomLevel={zoomLevel}
+            onPositionChange={handleTextChange}
+            onActiveChange={setIsTextActive}
+            onClick={handleTextClick}
+          />
+        )}
 
         <div
           ref={clipsScrollContainerRef}
@@ -159,45 +253,35 @@ export default function tchVideoEditor() {
       </div>
 
       <div className="shrink-0 p-6 md:px-8 md:py-4">
-        <RenderButton clips={activeClips} ratio={ratio} />
+        {/* <RenderButton 
+          clips={activeClips} 
+          ratio={ratio}
+          textOverlay={isTextActive ? {
+            id: textId,
+            content: appliedText,
+            startPosition: textStartPosition,
+            duration: textClipCount,
+            animation: selectedTextAnimation,
+          } : null}
+          zoomLevel={zoomLevel}
+        /> */}
       </div>
     </div>
   );
 }
 
-const MIN_RENDER_DELAY_MS = 2000;
-const MAX_RENDER_DELAY_MS = 8000;
+// // RenderButton 
+// function RenderButton({
+//   clips,
+//   ratio,
+//   textOverlay,
+//   zoomLevel,
+// }: {
+//   clips: any[];
+//   ratio: "portrait" | "landscape";
+//   textOverlay: any;
+//   zoomLevel: number;
+// }) {
+  
 
-function RenderButton({
-  clips,
-  ratio,
-}: {
-  clips: typeof SAMPLE_VIDEOS;
-  ratio: "portrait" | "landscape";
-}) {
-  const [isRendering, setIsRendering] = useState(false);
-
-  const handleRender = async () => {
-    setIsRendering(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * (MAX_RENDER_DELAY_MS - MIN_RENDER_DELAY_MS + 1)) + MIN_RENDER_DELAY_MS));
-    } finally {
-      setIsRendering(false);
-    }
-  };
-
-  return (
-    <div className="flex items-center justify-end">
-      <Button onClick={handleRender} disabled={isRendering || clips.length === 0} className="min-w-[120px]">
-        {isRendering ? (
-          <span className="flex items-center gap-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            Rendering...
-          </span>
-        ) : (
-          "Render Video"
-        )}
-      </Button>
-    </div>
-  );
-}
+// }
