@@ -43,7 +43,9 @@ export default function DraggableText({
 
   // calculate position and width
   const xPosition = startPosition * (clipWidth + gap);
-  const width = clipWidth * duration + gap * (duration - 1) - 15;
+  const calculatedWidth = clipWidth * duration + gap * (duration - 1) - 15;
+  const minWidth = clipWidth - 15; // minimum width is clip width
+  const width = Math.max(calculatedWidth, minWidth);
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isActive) return;
@@ -107,7 +109,7 @@ export default function DraggableText({
       
       if (isResizing === 'right') {
         // resize from right side
-        newDuration = Math.max(0.1, resizeRef.current.startDuration + deltaClips);
+        newDuration = Math.max(1, resizeRef.current.startDuration + deltaClips); // min 1 clip
         
         // ensure doesnt go beyond timeline
         const maxDuration = totalClips - startPosition;
@@ -117,16 +119,15 @@ export default function DraggableText({
         // resize from left side
         const deltaPosition = deltaClips;
         newPosition = Math.max(0, resizeRef.current.startPosition + deltaPosition);
-        newDuration = Math.max(0.1, resizeRef.current.startDuration - deltaPosition);
-        
-        // ensure duration doesnt go below minimum
-        if (newDuration < 0.1) {
-          newDuration = 0.1;
-          newPosition = startPosition + duration - 0.1;
-        }
+        newDuration = Math.max(1, resizeRef.current.startDuration - deltaPosition); // min 1 clip
         
         // ensure doesnt go before timeline start
         newPosition = Math.max(0, newPosition);
+        
+        if (newDuration < 1) {
+          newDuration = 1;
+          newPosition = startPosition + duration - 1;
+        }
       }
       
       onPositionChange(id, newPosition, newDuration);
@@ -183,7 +184,10 @@ export default function DraggableText({
               : "border-[#F5F5F5] bg-[#F5F5F5]",
             (isDragging || isResizing) && "shadow-lg scale-[1.02] z-20"
           )}
-          style={{ width: `${width}px` }}
+          style={{ 
+            width: `${width}px`,
+            minWidth: `${minWidth}px`
+          }}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
           onClick={(e) => {
@@ -201,10 +205,10 @@ export default function DraggableText({
             />
           )}
           
-          <div className="relative flex items-center gap-2">
+          <div className="relative flex items-center gap-2 w-full overflow-hidden">
             <button
               className={cn(
-                "flex size-8 items-center justify-center rounded-md border transition-colors",
+                "flex size-8 items-center justify-center rounded-md border transition-colors shrink-0",
                 isActive 
                   ? "border-black bg-black text-white hover:bg-black/90" 
                   : "border-[#E9E9E9] bg-white text-[#A3A3A3]"
@@ -216,8 +220,14 @@ export default function DraggableText({
             >
               <Type size={16} className={isActive ? "text-white" : "text-[#A3A3A3]"} />
             </button>
+            
             {isActive && textContent && (
-              <span className="text-sm whitespace-nowrap text-black">{textContent}</span>
+              <span 
+                className="text-sm whitespace-nowrap text-black truncate w-full"
+                title={textContent} 
+              >
+                {textContent}
+              </span>
             )}
           </div>
           
@@ -229,6 +239,7 @@ export default function DraggableText({
               onTouchStart={(e) => handleResizeStart(e, 'right')}
             />
           )}
+          
         </div>
       </div>
     </div>
