@@ -28,8 +28,9 @@ export function RenderButton({ clips, ratio, textOverlay }: RenderButtonProps) {
   const [progress, setProgress] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  useEffect(() => {
-  if (!success) return;
+
+useEffect(() => {
+  if (!success ) return;
 
   const timer = setTimeout(() => {
     setSuccess(null);
@@ -37,6 +38,7 @@ export function RenderButton({ clips, ratio, textOverlay }: RenderButtonProps) {
 
   return () => clearTimeout(timer);
 }, [success]);
+
 
   const handleRender = async () => {
   try {
@@ -128,6 +130,7 @@ export function RenderButton({ clips, ratio, textOverlay }: RenderButtonProps) {
             style={{ width: `${progress}%` }}
           />
         </div>
+
       </>
     )}
 

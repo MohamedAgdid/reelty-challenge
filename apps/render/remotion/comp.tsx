@@ -18,28 +18,45 @@ export interface VideoEditorProps {
   } | null;
 }
 
-const TextOverlay: React.FC<{ content: string; animation?: any | null }> = ({ content, animation = null }) => {
+const TextOverlay: React.FC<{ 
+  content: string; 
+  animation?: any | null;
+  sequenceDuration: number;
+}> = ({ content, animation = null, sequenceDuration }) => {
   const frame = useCurrentFrame();
-  const { durationInFrames } = useVideoConfig();
   const { width, height } = useVideoConfig();
-  const { fps } = useVideoConfig();
   
-  // fade in/out animation
+  // fade in/out animation using the sequence duration
   const fadeInDuration = 10;
-  const fadeOutStart = durationInFrames - 10; // start fading out at 10 frames before end
+  const fadeOutStart = Math.max(fadeInDuration + 1, sequenceDuration - 10);
   
   const opacity = interpolate(
     frame,
-    [0, fadeInDuration, fadeOutStart, fadeOutStart + fadeInDuration],
+    [0, fadeInDuration, fadeOutStart, sequenceDuration],
     [0, 1, 1, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );
+
+
+  // Debugging logs for animation object at key frames
+  // if (animation && (frame === 0 || frame === 150 || frame === 299)) {
+  //   console.log(`Frame ${frame} - Animation object:`, {
+  //     hasAnimation: !!animation,
+  //     animationKeys: animation ? Object.keys(animation) : [],
+  //     fr: animation?.fr, // frame rate
+  //     ip: animation?.ip, // in point
+  //     op: animation?.op, // out point (duration in frames)
+  //     opacity
+  //   });
+  // }
+
 
   return (
     <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
       {animation ? (
         <Lottie
           animationData={animation}
+          loop={true}  // make it loop
           style={{ opacity, width: width, height: height }} 
         />
       ) : (
@@ -63,6 +80,30 @@ const TextOverlay: React.FC<{ content: string; animation?: any | null }> = ({ co
 
 const VideoEditorComposition: React.FC<VideoEditorProps> = ({ clips, textOverlay }) => {
   const { fps } = useVideoConfig();
+
+  
+  console.log('=== VIDEO EDITOR COMPOSITION ===');
+  console.log('Number of clips:', clips.length);
+  clips.forEach((clip, i) => {
+    console.log(`Clip ${i}:`, {
+      id: clip.id,
+      duration: clip.duration,
+      url: clip.url.substring(0, 50)
+    });
+  });
+  
+  if (textOverlay) {
+    console.log('Text overlay:', {
+      content: textOverlay.content,
+      startPosition: textOverlay.startPosition,
+      duration: textOverlay.duration,
+      animation: textOverlay.animation ? 'YES' : 'NO'
+    });
+  }
+  console.log('FPS:', fps);
+  console.log('================================');
+
+
   
   // calculate frame positions for each clip
   let currentFrame = 0;
@@ -100,7 +141,8 @@ const VideoEditorComposition: React.FC<VideoEditorProps> = ({ clips, textOverlay
         (() => {
           // calculate which clips the text overlay spans
           const startClipIndex = textOverlay.startPosition;
-          const endClipIndex = startClipIndex + textOverlay.duration;
+          const numberOfClipsToSpan = textOverlay.duration; // count of clips to span
+          const endClipIndex = startClipIndex + numberOfClipsToSpan; // end position
           
           // calculate the frame range
           let textStartFrame = 0;
@@ -121,6 +163,7 @@ const VideoEditorComposition: React.FC<VideoEditorProps> = ({ clips, textOverlay
               <TextOverlay 
                 content={textOverlay.content} 
                 animation={textOverlay.animation}
+                sequenceDuration={textDurationInFrames}
               />
             </Sequence>
           );
@@ -129,6 +172,7 @@ const VideoEditorComposition: React.FC<VideoEditorProps> = ({ clips, textOverlay
     </AbsoluteFill>
   );
 };
+
 export const RemotionRoot: React.FC = () => {
   return (
     <Composition
