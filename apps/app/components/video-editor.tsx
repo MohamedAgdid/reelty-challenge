@@ -12,6 +12,7 @@ import Magnifier from "./magnifier";
 import { Plus } from "lucide-react";
 import TextDock from "./text-dock";
 import { snapToClipBoundaries, snapTextEdges, Clip } from "@/lib/timeline-utils";
+import { RenderButton } from "./render-button";
 
 export default function tchVideoEditor() {
   const ratio: "portrait" | "landscape" = "portrait";
@@ -31,7 +32,6 @@ export default function tchVideoEditor() {
   const [activeClips, setActiveClips] = useState(SAMPLE_VIDEOS.map((video, index) => ({
     ...video,
     startPosition: index,
-    duration: 1, // each clip is 1 unit
   })));
   const [removedClips, setRemovedClips] = useState<typeof SAMPLE_VIDEOS>([]);
 
@@ -253,9 +253,9 @@ export default function tchVideoEditor() {
       </div>
 
       <div className="shrink-0 p-6 md:px-8 md:py-4">
-        {/* <RenderButton 
+        <RenderButton
           clips={activeClips} 
-          ratio={ratio}
+          ratio={ratio} 
           textOverlay={isTextActive ? {
             id: textId,
             content: appliedText,
@@ -263,25 +263,9 @@ export default function tchVideoEditor() {
             duration: textClipCount,
             animation: selectedTextAnimation,
           } : null}
-          zoomLevel={zoomLevel}
-        /> */}
+        />
       </div>
     </div>
   );
 }
 
-// // RenderButton 
-// function RenderButton({
-//   clips,
-//   ratio,
-//   textOverlay,
-//   zoomLevel,
-// }: {
-//   clips: any[];
-//   ratio: "portrait" | "landscape";
-//   textOverlay: any;
-//   zoomLevel: number;
-// }) {
-  
-
-// }

@@ -14,6 +14,7 @@
     "@remotion/bundler": "^4.0.0",
     "@remotion/cli": "^4.0.0",
     "@remotion/renderer": "^4.0.0",
+    "@remotion/zod-types": "^4.0.414",
     "cors": "^2.8.6",
     "express": "^5.1.0",
     "file-loader": "^6.2.0",
