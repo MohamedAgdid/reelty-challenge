@@ -1,7 +1,7 @@
 export interface Clip {
   id: string;
   startPosition: number; // index in timeline
-  duration: number; // in clip units (usually 1)
+  duration: number; // in clip units
 }
 
 export interface TextOverlay {
