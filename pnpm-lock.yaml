@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    dependencies:
+      '@remotion/lottie':
+        specifier: ^4.0.415
+        version: 4.0.415(lottie-web@5.13.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
   apps/app:
     dependencies:
@@ -697,6 +701,13 @@ packages:
 
   '@remotion/licensing@4.0.409':
     resolution: {integrity: sha512-lo9S78ngigQzuZnEtyLrUz7DDxDYXoaDQK+4bUVl9PKBdxJXrAyrzaEb+qv/ooKY8GaoOLU409yKyJYfAiUBDg==}
+
+  '@remotion/lottie@4.0.415':
+    resolution: {integrity: sha512-RE9wKiuz8h/n33VXgksIb/jlP12TLAbl//zOm8UzoInrn/3dvrvG4c1hsf7mx8fhoWloS5R+KTrvsDSQo/InxQ==}
+    peerDependencies:
+      lottie-web: ^5
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@remotion/media-parser@4.0.409':
     resolution: {integrity: sha512-haqxfXFjU0KLoa2aY78gpTIkBBvTXZUK5DsqpoGqufxW0j/uLg9fl9W6bGJ0ahEiL28hMUjg+7RMSiC42XYoXQ==}
@@ -3444,6 +3455,13 @@ snapshots:
     optional: true
 
   '@remotion/licensing@4.0.409': {}
+
+  '@remotion/lottie@4.0.415(lottie-web@5.13.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      lottie-web: 5.13.0
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+      remotion: 4.0.414(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
 
   '@remotion/media-parser@4.0.409': {}
 

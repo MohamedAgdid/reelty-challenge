@@ -9,5 +9,8 @@
     "build": "pnpm -r run build",
     "build:app": "pnpm --filter app build",
     "build:render": "pnpm --filter render build"
+  },
+  "dependencies": {
+    "@remotion/lottie": "^4.0.415"
   }
 }

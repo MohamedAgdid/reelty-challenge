@@ -16,7 +16,7 @@ interface RenderButtonProps {
     content: string;
     startPosition: number;
     duration: number;
-    animation: string | null;
+    animation: any | null;
   } | null;
 }
 

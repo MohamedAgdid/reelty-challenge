@@ -13,6 +13,8 @@ import { Plus } from "lucide-react";
 import TextDock from "./text-dock";
 import { snapToClipBoundaries, snapTextEdges, Clip } from "@/lib/timeline-utils";
 import { RenderButton } from "./render-button";
+import { replaceAnimationPlaceholder } from "@/server/utils";
+import { trpc } from "@/api/client";
 
 export default function tchVideoEditor() {
   const ratio: "portrait" | "landscape" = "portrait";
@@ -28,6 +30,8 @@ export default function tchVideoEditor() {
   const [textStartPosition, setTextStartPosition] = useState(0); // start at clip 1 (position 0)
   const [textClipCount, setTextClipCount] = useState(1); // default: 1 clip
   const [textId] = useState(() => `text-overlay-${Date.now()}`);
+  const [selectedAnimationData, setSelectedAnimationData] = useState<any | null>(null);
+
 
   const [activeClips, setActiveClips] = useState(SAMPLE_VIDEOS.map((video, index) => ({
     ...video,
@@ -53,23 +57,33 @@ export default function tchVideoEditor() {
 
   const clipWidth = getClipWidth(ratio, zoomLevel);
   const constrainedHeight = getConstrainedHeight(ratio, zoomLevel);
+ 
+  const { data: templates } = trpc.textTemplates.getAll.useQuery();
 
-  const handleApplyText = () => {
-    if (textInput && selectedTextAnimation) {
-      setAppliedText(textInput);
-      setIsTextActive(true);
-      setIsTextOpen(false);
-      
-      // default text to start at position 0 (first clip)
-      setTextStartPosition(0);
-      setTextClipCount(Math.min(2, activeClips.length)); // default to 2 clips or less
+ const handleApplyText = () => {
+  if (textInput && selectedTextAnimation && templates) {
+    setAppliedText(textInput);
+    setIsTextActive(true);
+    setIsTextOpen(false);
+
+    setTextStartPosition(0);
+    setTextClipCount(Math.min(2, activeClips.length));
+
+    const foundTemplate = templates.find(t => t.key === selectedTextAnimation);
+    if (foundTemplate?.content) {
+      const animData = replaceAnimationPlaceholder(foundTemplate.content, textInput);
+      setSelectedAnimationData(animData);
     }
-  };
+  }
+};
+
+
 
   const handleResetText = () => {
     setTextInput("");
     setAppliedText("");
     setSelectedTextAnimation(null);
+    setSelectedAnimationData(null);
     setIsTextActive(false);
     setTextStartPosition(0);
     setTextClipCount(1);
@@ -256,12 +270,12 @@ export default function tchVideoEditor() {
         <RenderButton
           clips={activeClips} 
           ratio={ratio} 
-          textOverlay={isTextActive ? {
+          textOverlay={isTextActive && selectedAnimationData ? {
             id: textId,
             content: appliedText,
             startPosition: textStartPosition,
             duration: textClipCount,
-            animation: selectedTextAnimation,
+            animation: selectedAnimationData,
           } : null}
         />
       </div>
