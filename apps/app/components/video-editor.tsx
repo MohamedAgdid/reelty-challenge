@@ -15,6 +15,21 @@ import { snapToClipBoundaries, snapTextEdges, Clip } from "@/lib/timeline-utils"
 import { RenderButton } from "./render-button";
 import { replaceAnimationPlaceholder } from "@/server/utils";
 import { trpc } from "@/api/client";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import SortableClip from "./sortable-clip";
+
+
 
 export default function tchVideoEditor() {
   const ratio: "portrait" | "landscape" = "portrait";
@@ -163,6 +178,24 @@ export default function tchVideoEditor() {
     }
   };
 
+  const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+);
+
+const handleDragEnd = (event: DragEndEvent) => {
+  const { active, over } = event;
+  if (!over || active.id === over.id) return;
+
+  const oldIndex = activeClips.findIndex(c => c.id === active.id);
+  const newIndex = activeClips.findIndex(c => c.id === over.id);
+
+  const updatedClips = [...activeClips];
+  const [movedClip] = updatedClips.splice(oldIndex, 1);
+  updatedClips.splice(newIndex, 0, movedClip);
+
+  setActiveClips(updatedClips);
+};
+
   return (
     <div className="flex h-full max-h-full flex-col overflow-hidden">
       <div className="shrink-0 p-6 md:px-8 md:py-4">
@@ -242,19 +275,30 @@ export default function tchVideoEditor() {
           )}
         >
           <div className="flex w-full items-center gap-4">
-            {activeClips.map((video, index) => (
-              <VideoClipCard
-                key={video.id}
-                id={video.id}
-                videoUrl={video.url}
-                ratio={ratio}
-                height={constrainedHeight}
-                index={index}
-                isRemoved={false}
-                onRemove={handleRemoveClip}
-                onAdd={handleAddClip}
-              />
-            ))}
+           <DndContext
+             sensors={sensors}
+             collisionDetection={closestCenter}
+             onDragEnd={handleDragEnd}
+            >
+          <SortableContext
+            items={activeClips.map(c => c.id)}
+            strategy={horizontalListSortingStrategy}
+           >
+         {activeClips.map((clip, index) => (
+          <SortableClip
+           key={clip.id}
+           clip={clip}
+           index={index}
+           videoUrl={clip.url}
+           ratio={ratio}
+           height={constrainedHeight}
+           onRemove={handleRemoveClip}
+           onAdd={handleAddClip}
+           />
+           ))}
+          </SortableContext>
+          </DndContext>
+
             {removedClips.length > 0 && (
               <div className="mx-4">
                 <div className={twMerge("flex size-11 items-center justify-center rounded-lg border", "border-[#EDEDED] bg-[#FBFBFB] shadow-md")}>
