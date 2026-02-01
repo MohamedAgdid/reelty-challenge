@@ -9,5 +9,11 @@
     "build": "pnpm -r run build",
     "build:app": "pnpm --filter app build",
     "build:render": "pnpm --filter render build"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@remotion/lottie": "^4.0.415"
   }
 }

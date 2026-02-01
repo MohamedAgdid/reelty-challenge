@@ -60,7 +60,7 @@ const TemplateItem = ({
     <button
       className={twMerge(
         "size-[350px] flex-shrink-0 rounded-3xl border-4 p-3 duration-300",
-        isSelected ? "border-[#8E2DF6] bg-white" : "border-[#F5F5F5] bg-[#F5F5F5] hover:shadow-md"
+        isSelected ? "border-[#f62d2d] bg-white" : "border-[#F5F5F5] bg-[#F5F5F5] hover:shadow-md"
       )}
       onClick={onSelect}
     >

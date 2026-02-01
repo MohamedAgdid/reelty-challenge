@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Composition, Sequence, useCurrentFrame, useVideoConfig, OffthreadVideo, interpolate } from "remotion";
+import { Lottie } from '@remotion/lottie';
 
 // props for composition
 export interface VideoEditorProps {
@@ -11,15 +12,16 @@ export interface VideoEditorProps {
   textOverlay?: {
     id: string;
     content: string;
-    startPosition: number; //clip to start at
-    duration: number; // how many clips to span
-    animation?: string | null;
+    startPosition: number;
+    duration: number; 
+    animation?: any | null;
   } | null;
 }
 
-const TextOverlay: React.FC<{ content: string; animation?: string | null }> = ({ content }) => {
+const TextOverlay: React.FC<{ content: string; animation?: any | null }> = ({ content, animation = null }) => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
+  const { width, height } = useVideoConfig();
   const { fps } = useVideoConfig();
   
   // fade in/out animation
@@ -34,24 +36,27 @@ const TextOverlay: React.FC<{ content: string; animation?: string | null }> = ({
   );
 
   return (
-    <AbsoluteFill style={{
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 10,
-    }}>
-      <div
-        style={{
-          fontSize: 80,
-          fontWeight: 'bold',
-          color: 'white',
-          textAlign: 'center',
-          padding: '0 40px',
-          textShadow: '0 4px 8px rgba(0,0,0,0.5)',
-          opacity,
-        }}
-      >
-        {content}
-      </div>
+    <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', zIndex: 10 }}>
+      {animation ? (
+        <Lottie
+          animationData={animation}
+          style={{ opacity, width: width, height: height }} 
+        />
+      ) : (
+        <div
+          style={{
+            fontSize: 80,
+            fontWeight: 'bold',
+            color: 'white',
+            textAlign: 'center',
+            padding: '0 40px',
+            textShadow: '0 4px 8px rgba(0,0,0,0.5)',
+            opacity,
+          }}
+        >
+          {content}
+        </div>
+      )}
     </AbsoluteFill>
   );
 };
