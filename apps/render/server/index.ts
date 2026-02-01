@@ -90,11 +90,18 @@ app.post("/api/render", async (req, res) => {
       outputLocation,
       composition: {
         ...composition,
-        durationInFrames,
+        durationInFrames: Math.round(totalDuration * fps),
         width,
         height,
       },
       inputProps: { clips, textOverlay },
+      
+      //for higher quality renders, uncomment below
+      // videoBitrate: "8M", 
+      // encodingMaxRate: "10M",
+      // encodingBufferSize: "12M",
+      // crf: 18,
+      // pixelFormat: "yuv420p",
 
       onProgress: ({ progress }) => {
         renderProgress.set(renderId, {

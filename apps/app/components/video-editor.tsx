@@ -6,7 +6,6 @@ import { usePinchZoom } from "@/hooks/use-pinch-zoom";
 import DraggableText from "./draggable-text";
 import StaticTextOverlay from "./static-text-overlay";
 import { SAMPLE_VIDEOS } from "@/data/sample-videos";
-import VideoClipCard from "./video-clip-card";
 import { twMerge } from "tailwind-merge";
 import Magnifier from "./magnifier";
 import { Plus } from "lucide-react";
@@ -111,7 +110,7 @@ export default function tchVideoEditor() {
     return activeClips.map((clip, index) => ({
       id: clip.id,
       startPosition: index,
-      duration: 1,
+      duration: clip.duration || 5,
     }));
   };
 
@@ -173,7 +172,7 @@ export default function tchVideoEditor() {
     const clip = removedClips.find((c) => c.id === id);
     if (clip) {
       setRemovedClips(removedClips.filter((c) => c.id !== id));
-      const newActiveClips = [...activeClips, { ...clip, startPosition: activeClips.length, duration: 1 }];
+      const newActiveClips = [...activeClips, { ...clip, startPosition: activeClips.length, duration: 5 }];
       setActiveClips(newActiveClips);
     }
   };
